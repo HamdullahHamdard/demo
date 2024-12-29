@@ -1,5 +1,4 @@
 package com.example.demo;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -12,13 +11,19 @@ import com.example.grpc.SignalingServiceGrpc;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
 
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 @SpringBootApplication
 public class DemoApplication {
 
-	
     public static void main(String[] args) {
         SpringApplication.run(DemoApplication.class, args);
     }
+
+    // @Bean
+    // public SignalingServiceImpl signalingService() {
+    //     return new SignalingServiceImpl();
+    // }
 
     @GrpcService
     public static class SignalingServiceImpl extends SignalingServiceGrpc.SignalingServiceImplBase {
@@ -33,30 +38,31 @@ public class DemoApplication {
                     .setContent("Message received: " + content)
                     .build();
             responseObserver.onNext(response);
-			System.out.println("__________________________________________ This is sending");
+            System.out.println("__________________________________________ This is sending signal");
             responseObserver.onCompleted();
         }
 
         @Override
         public void receiveMessages(Empty request, StreamObserver<MessageResponse> responseObserver) {
-            while (true) {
+            while (!Thread.currentThread().isInterrupted()) {
                 String message = messages.poll();
                 if (message != null) {
                     MessageResponse response = MessageResponse.newBuilder()
                             .setContent(message)
                             .build();
                     responseObserver.onNext(response);
-					System.out.println("__________________________________________ This is reciving");
+                    System.out.println("__________________________________________ This is receiving signal");
                 }
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException e) {
                     responseObserver.onError(e);
-					System.out.println("__________________________________________ This is Exception");
+                    System.out.println("__________________________________________ This is Exception in signal");
+                    Thread.currentThread().interrupt();
                     return;
                 }
             }
         }
     }
-
 }
+
